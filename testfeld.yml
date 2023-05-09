@@ -1,0 +1,110 @@
+#cloud-config
+autoinstall:
+  version: 1
+  refresh-installer:
+    update: yes
+
+  locale: de_DE.UTF-8
+    
+  keyboard:
+    layout: de
+
+  identity:
+    hostname: newmachine
+    password: $6$HpYlL5uwmHazzsem$Z1S1zQYCt4LjbsIUhRT6zrWnBJbfyUeuXlHSdUk7t7ttbsdFaza0VxlJyJcso09T3UI6bOI8/O3.kUxZQ2uGj.
+    username: phytec
+
+  ssh:
+    allow-pw: true
+    install-server: true
+
+  apt:
+    primary:
+      - arches: [default]
+        uri: 'http://de.archive.ubuntu.com/ubuntu/'
+        search: 'http://de.archive.ubuntu.com/ubuntu/'
+
+  packages: 
+    - build-essential
+    - ubuntu-desktop-minimal
+    - sssd
+    - sssd-tools
+    - samba
+    - smbclient
+    - cifs-utils
+    - libpam-mount
+    - libpam-ccreds
+    - keyutils
+    - hxtools
+    - realmd
+    - adcli
+    - vim
+    - unattended-upgrades
+    - apt-transport-https
+    - wget
+    - gnupg
+    - git
+
+  package_update: true
+  package_upgrade: true
+
+  late-commands:
+    # prerequisite to join AD
+    - echo "session required pam_mkhomedir.so umask=0022 skel=/etc/skel" >> /target/etc/pam.d/common-session
+
+    # Changing from networkd to NetworkManager
+    # move existing config out of the way
+    - find /target/etc/netplan/ -name "*.yaml" -exec sh -c 'mv "$1" "$1-orig"' _ {} \;
+    # Create a new netplan and enable it
+    - |
+      cat << EOF | sudo tee /target/etc/netplan/01-netcfg.yaml
+      network:
+        version: 2
+        renderer: NetworkManager
+      EOF
+
+    - curtin in-target --target /target netplan generate
+    - curtin in-target --target /target netplan apply
+    - curtin in-target --target /target systemctl enable NetworkManager.service
+
+    # Enable automatic Upgrades
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/50unattended-upgrades
+      // Automatically upgrade packages from these (origin, archive) pairs
+      Unattended-Upgrade::Allowed-Origins {
+          // ${distro_id} and ${distro_codename} will be automatically expanded
+          "${distro_id} stable";
+          "${distro_id} ${distro_codename}-security";
+          "${distro_id} ${distro_codename}-updates";
+      //  "${distro_id} ${distro_codename}-proposed-updates";
+      };
+
+      // List of packages to not update
+      Unattended-Upgrade::Package-Blacklist {
+      //  "vim";
+      //  "libc6";
+      //  "libc6-dev";
+      //  "libc6-i686";
+      };
+
+      // Send email to this address for problems or packages upgrades
+      // If empty or unset then no email is sent, make sure that you
+      // have a working mail setup on your system. The package 'mailx'
+      // must be installed or anything that provides /usr/bin/mail.
+      //Unattended-Upgrade::Mail "root@localhost";
+
+      // Do automatic removal of new unused dependencies after the upgrade
+      // (equivalent to apt-get autoremove)
+      //Unattended-Upgrade::Remove-Unused-Dependencies "false";
+
+      // Automatically reboot *WITHOUT CONFIRMATION* if a
+      // the file /var/run/reboot-required is found after the upgrade
+      //Unattended-Upgrade::Automatic-Reboot "false";
+      EOF
+

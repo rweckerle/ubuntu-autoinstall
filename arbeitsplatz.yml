@@ -1,0 +1,118 @@
+#cloud-config
+autoinstall:
+  version: 1
+  refresh-installer:
+    update: yes
+
+  locale: de_DE.UTF-8
+
+  keyboard:
+    layout: de
+
+  identity:
+    hostname: newmachine
+    password: $6$HpYlL5uwmHazzsem$Z1S1zQYCt4LjbsIUhRT6zrWnBJbfyUeuXlHSdUk7t7ttbsdFaza0VxlJyJcso09T3UI6bOI8/O3.kUxZQ2uGj.
+    username: phytec
+
+  ssh:
+    allow-pw: true
+    install-server: true
+    authorized-keys: [ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC7E7TQPe5l7RQI3c55WpM8c+1Txlh33CwOzqh/oQFyQT6IakNPQi2dUyqKI4V3zqQCflM2JURzT9hVxhbymjlfM+QsCxAltav5YLUKWE10Vv5Ih4dbuabHHmUNLDP0Bgs5wbFbw8wcP7y3JC+cTaaAs43RJjexOcJ19jGQT+f1wTE2PFbdlK0IlsoJv6+BIbyTZrJuyVwNvFXFNJZe5sm+Nsq5gXHUYwjdIf7jVYYI/lEET71vBkLcRn5XLBiqQ586kGSqRfdmgCtOdx5iCObnzVPbDWc4HDOP2I/RzFJgSt0KucIgDkHYFB5GCKmjRTiPRmtcIUG+jK58fSMZRfQFEMm5OnqMpFpaYXT4cX7IS2ydP2qPdt4ENIrI+CPaOZhBXCAZM+YGCJZFqXY5AehCQ8BVIep5MJY2XCgYN2IavlZK7DStJFzCCDaHnzaRh7+KYVKfKW0eeQaJxKy4Id/7tJU2BEqGOsoUtJng/ds0ykdGLXoMR7Cv4idUu6bfwPww2CsdTWk0z9+aDRktmgAjGSHBWDx0m+QchNCgAVTJQP0vtHcdRc6zgHK8GRzlM3Ql4IbpnDNgUbMMQho1Z7EREYzb4YJkfp/M/n3zDQbse9KIJujnx0NWDv+vep0SMiDtisG/VG+ZzbqlZvkmGwXybajlOZoI5Q7UnKRqgwAtHQ== r.weckerle@phytec.de]
+
+  apt:
+    preserve_sources_list: false
+    primary:
+      - arches: [amd64, i386]
+        uri: 'http://de.archive.ubuntu.com/ubuntu/'
+        search: 'http://de.archive.ubuntu.com/ubuntu/'
+
+  packages: 
+    - build-essential
+    - ubuntu-desktop-minimal
+    - sssd
+    - sssd-tools
+    - samba
+    - smbclient
+    - cups
+    - cifs-utils
+    - libpam-mount
+    - libpam-ccreds
+    - keyutils
+    - hxtools
+    - realmd
+    - adcli
+    - vim
+    - unattended-upgrades
+    - apt-transport-https
+    - wget
+    - gnupg
+    - evolution
+    - evolution-ews
+    - guake
+    - flatpak
+    - git
+    - wine
+    - winetricks
+
+  package_update: true
+  package_upgrade: true
+
+  late-commands:
+    # prerequisite to join AD
+    - echo "session required pam_mkhomedir.so umask=0022 skel=/etc/skel" >> /target/etc/pam.d/common-session
+
+    # Changing from networkd to NetworkManager
+    # move existing config out of the way
+    - find /target/etc/netplan/ -name "*.yaml" -exec sh -c 'mv "$1" "$1-orig"' _ {} \;
+    # Create a new netplan and enable it
+    - |
+      cat << EOF | sudo tee /target/etc/netplan/01-netcfg.yaml
+      network:
+        version: 2
+        renderer: NetworkManager
+      EOF
+
+    - curtin in-target --target /target netplan generate
+    - curtin in-target --target /target netplan apply
+    - curtin in-target --target /target systemctl enable NetworkManager.service
+
+    # Enable automatic Upgrades
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/50unattended-upgrades
+      // Automatically upgrade packages from these (origin, archive) pairs
+      Unattended-Upgrade::Allowed-Origins {
+          // ${distro_id} and ${distro_codename} will be automatically expanded
+          "${distro_id} stable";
+          "${distro_id} ${distro_codename}-security";
+          "${distro_id} ${distro_codename}-updates";
+      //  "${distro_id} ${distro_codename}-proposed-updates";
+      };
+
+      // List of packages to not update
+      Unattended-Upgrade::Package-Blacklist {
+      //  "vim";
+      //  "libc6";
+      //  "libc6-dev";
+      //  "libc6-i686";
+      };
+
+      // Send email to this address for problems or packages upgrades
+      // If empty or unset then no email is sent, make sure that you
+      // have a working mail setup on your system. The package 'mailx'
+      // must be installed or anything that provides /usr/bin/mail.
+      //Unattended-Upgrade::Mail "root@localhost";
+
+      // Do automatic removal of new unused dependencies after the upgrade
+      // (equivalent to apt-get autoremove)
+      //Unattended-Upgrade::Remove-Unused-Dependencies "false";
+
+      // Automatically reboot *WITHOUT CONFIRMATION* if a
+      // the file /var/run/reboot-required is found after the upgrade
+      //Unattended-Upgrade::Automatic-Reboot "false";
+      EOF

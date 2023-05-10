@@ -11,7 +11,7 @@ autoinstall:
 
   identity:
     hostname: newmachine
-    password: $6$HpYlL5uwmHazzsem$Z1S1zQYCt4LjbsIUhRT6zrWnBJbfyUeuXlHSdUk7t7ttbsdFaza0VxlJyJcso09T3UI6bOI8/O3.kUxZQ2uGj.
+    password: $6$h1jV/Ris/56mZPLA$.rMV9YdiGzsPCJUB7jmWFdklsZMqk8NdZgORY1RZCqLjLcR/7PvNYLdTsD6LI5rPHnMxaHg2qmNkFPvKVy2uS1
     username: phytec
 
   ssh:
@@ -107,4 +107,3 @@ autoinstall:
       // the file /var/run/reboot-required is found after the upgrade
       //Unattended-Upgrade::Automatic-Reboot "false";
       EOF
-

@@ -14,6 +14,10 @@ autoinstall:
     password: $6$HpYlL5uwmHazzsem$Z1S1zQYCt4LjbsIUhRT6zrWnBJbfyUeuXlHSdUk7t7ttbsdFaza0VxlJyJcso09T3UI6bOI8/O3.kUxZQ2uGj.
     username: phytec
 
+  storage:
+    layout:
+      name: direct
+
   ssh:
     allow-pw: true
     install-server: true

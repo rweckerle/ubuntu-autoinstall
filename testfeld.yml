@@ -29,6 +29,13 @@ autoinstall:
         search: 'http://de.archive.ubuntu.com/ubuntu/'
 
   packages: 
+    - language-pack-de-base
+    - language-pack-de
+    - wngerman
+    - gnome-user-docs-de
+    - wogerman
+    - wswiss
+    - language-pack-gnome-de
     - build-essential
     - ubuntu-desktop-minimal
     - sssd
@@ -48,7 +55,8 @@ autoinstall:
     - wget
     - gnupg
     - git
-    - python
+    - python3
+    - x2goserver
 
   package_update: true
   package_upgrade: true

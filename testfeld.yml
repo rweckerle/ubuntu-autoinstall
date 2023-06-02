@@ -61,6 +61,8 @@ autoinstall:
   package_update: true
   package_upgrade: true
 
+  shutdown: poweroff
+
   late-commands:
     # prerequisite to join AD
     - echo "session required pam_mkhomedir.so umask=0022 skel=/etc/skel" >> /target/etc/pam.d/common-session

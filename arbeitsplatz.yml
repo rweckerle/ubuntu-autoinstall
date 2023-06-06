@@ -31,6 +31,7 @@ autoinstall:
         search: 'http://de.archive.ubuntu.com/ubuntu/'
 
   packages: 
+    - curl
     - build-essential
     - ubuntu-desktop-minimal
     - sssd

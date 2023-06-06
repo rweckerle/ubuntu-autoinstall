@@ -57,6 +57,13 @@ autoinstall:
     - git
     - python3
     - x2goserver
+    - x2goserver-xsession
+    - x2goclient
+    - libreoffice
+    - gnome-session-flashback
+    - vlc
+    - krdc
+    - terminator
 
   package_update: true
   package_upgrade: true

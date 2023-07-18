@@ -5,6 +5,7 @@ autoinstall:
     update: yes
 
   locale: de_DE.UTF-8
+  timezone: Europe/Berlin
     
   keyboard:
     layout: de
@@ -69,7 +70,10 @@ autoinstall:
   package_upgrade: true
 
   shutdown: poweroff
-
+  
+  early-commands:
+    - echo 'linux-generic-hwe-22.04' > /run/kernel-meta-package
+    
   late-commands:
     # prerequisite to join AD
     - echo "session required pam_mkhomedir.so umask=0022 skel=/etc/skel" >> /target/etc/pam.d/common-session
@@ -105,6 +109,7 @@ autoinstall:
           "${distro_id} ${distro_codename}-security";
           "${distro_id} ${distro_codename}-updates";
       //  "${distro_id} ${distro_codename}-proposed-updates";
+          "ubuntu icinga-${distro_codename} icinga-${distro_codename}"
       };
 
       // List of packages to not update
@@ -115,17 +120,18 @@ autoinstall:
       //  "libc6-i686";
       };
 
-      // Send email to this address for problems or packages upgrades
-      // If empty or unset then no email is sent, make sure that you
-      // have a working mail setup on your system. The package 'mailx'
-      // must be installed or anything that provides /usr/bin/mail.
-      //Unattended-Upgrade::Mail "root@localhost";
-
       // Do automatic removal of new unused dependencies after the upgrade
       // (equivalent to apt-get autoremove)
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
-
-      // Automatically reboot *WITHOUT CONFIRMATION* if a
-      // the file /var/run/reboot-required is found after the upgrade
-      //Unattended-Upgrade::Automatic-Reboot "false";
       EOF
+      
+    - >-
+      curtin in-target -- apt-get remove -y
+      ubuntu-server ubuntu-server-minimal
+      binutils byobu dmeventd finalrd gawk
+      kpartx mdadm ncurses-term needrestart open-iscsi
+      sg3-utils thin-provisioning-tools tmux
+      sosreport open-vm-tools motd-news-config lxd-agent-loader
+      landscape-common
+    - curtin in-target -- apt-get install -y cloud-init
+    - curtin in-target -- apt-get autoremove -y

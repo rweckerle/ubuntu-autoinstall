@@ -5,6 +5,7 @@ autoinstall:
     update: yes
 
   locale: de_DE.UTF-8
+  timezone: Europe/Berlin
 
   keyboard:
     layout: de
@@ -31,6 +32,8 @@ autoinstall:
         search: 'http://de.archive.ubuntu.com/ubuntu/'
 
   packages: 
+    - language-pack-de-base
+    - language-pack-de
     - curl
     - build-essential
     - ubuntu-desktop-minimal
@@ -59,10 +62,18 @@ autoinstall:
     - wine
     - winetricks
 
+  snaps:
+    - name: firefox
+    - name: snap-store
+    - name: zoom-client
+
   package_update: true
   package_upgrade: true
 
   shutdown: poweroff
+
+  early-commands:
+    - echo 'linux-generic-hwe-22.04' > /run/kernel-meta-package
 
   late-commands:
     # prerequisite to join AD
@@ -78,18 +89,18 @@ autoinstall:
         version: 2
         renderer: NetworkManager
       EOF
-
+      
     - curtin in-target --target /target netplan generate
     - curtin in-target --target /target netplan apply
-    - curtin in-target --target /target systemctl enable NetworkManager.service
-
+    - curtin in-target --target /target systemctl enable NetworkManager.service     
+    
     # Enable automatic Upgrades
     - |
       cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
       APT::Periodic::Update-Package-Lists "1";
       APT::Periodic::Unattended-Upgrade "1";
       EOF
-
+       
     - |
       cat << EOF | sudo tee /target/etc/apt/apt.conf.d/50unattended-upgrades
       // Automatically upgrade packages from these (origin, archive) pairs
@@ -109,17 +120,19 @@ autoinstall:
       //  "libc6-i686";
       };
 
-      // Send email to this address for problems or packages upgrades
-      // If empty or unset then no email is sent, make sure that you
-      // have a working mail setup on your system. The package 'mailx'
-      // must be installed or anything that provides /usr/bin/mail.
-      //Unattended-Upgrade::Mail "root@localhost";
-
       // Do automatic removal of new unused dependencies after the upgrade
       // (equivalent to apt-get autoremove)
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
-
-      // Automatically reboot *WITHOUT CONFIRMATION* if a
-      // the file /var/run/reboot-required is found after the upgrade
-      //Unattended-Upgrade::Automatic-Reboot "false";
       EOF
+
+    - >-
+      curtin in-target -- apt-get remove -y
+      ubuntu-server ubuntu-server-minimal
+      binutils byobu dmeventd finalrd gawk
+      kpartx mdadm ncurses-term needrestart open-iscsi
+      sg3-utils thin-provisioning-tools tmux
+      sosreport open-vm-tools motd-news-config lxd-agent-loader
+      landscape-common
+    - curtin in-target -- apt-get install -y cloud-init
+    - curtin in-target -- apt-get autoremove -y
+

@@ -65,7 +65,6 @@ autoinstall:
   snaps:
     - name: firefox
     - name: snap-store
-    - name: zoom-client
 
   package_update: true
   package_upgrade: true

@@ -128,17 +128,6 @@ autoinstall:
     # fuse.conf
     - echo "user_allow_other" > /etc/fuse.conf
 
-    # define mountpoints in /etc/fstab
-    - |
-      cat << EOF >> /target/etc/fstab
-      # Romulus
-      //Romulus/N-lw /home/automatix/mnt/N_lw cifs credentials=/home/automatix/.smb/.smbcredentials,file_mode=0600,dir_mode=0700,uid=automatix,nosuid,nodev,vers=2.1,nofail  0 0
-
-      # ls-softix
-      //ls-softix/data /home/automatix/mnt/sw_data cifs credentials=/home/automatix/.smb/.smbcredentials,file_mode=0600,dir_mode=0700,uid=automatix,nosuid,nodev,vers=2.1,domain=phytec.de,nofail  0 0
-      EOF
-
-
     # udev rules
     - |
       cat << EOF | sudo tee /target/etc/udev/rules.d/11-ftdi.rules

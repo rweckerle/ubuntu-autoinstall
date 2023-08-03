@@ -89,37 +89,6 @@ autoinstall:
     - curtin in-target --target /target netplan apply
     - curtin in-target --target /target systemctl enable NetworkManager.service     
     
-    # Enable automatic Upgrades
-    - |
-      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
-      APT::Periodic::Update-Package-Lists "1";
-      APT::Periodic::Unattended-Upgrade "1";
-      EOF
-       
-    - |
-      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/50unattended-upgrades
-      // Automatically upgrade packages from these (origin, archive) pairs
-      Unattended-Upgrade::Allowed-Origins {
-          // ${distro_id} and ${distro_codename} will be automatically expanded
-          "${distro_id} stable";
-          "${distro_id} ${distro_codename}-security";
-          "${distro_id} ${distro_codename}-updates";
-      //  "${distro_id} ${distro_codename}-proposed-updates";
-      };
-
-      // List of packages to not update
-      Unattended-Upgrade::Package-Blacklist {
-      //  "vim";
-      //  "libc6";
-      //  "libc6-dev";
-      //  "libc6-i686";
-      };
-
-      // Do automatic removal of new unused dependencies after the upgrade
-      // (equivalent to apt-get autoremove)
-      Unattended-Upgrade::Remove-Unused-Dependencies "true";
-      EOF
-
     - >-
       curtin in-target -- apt-get remove -y
       ubuntu-server ubuntu-server-minimal
@@ -130,4 +99,3 @@ autoinstall:
       landscape-common
     - curtin in-target -- apt-get install -y cloud-init
     - curtin in-target -- apt-get autoremove -y
-

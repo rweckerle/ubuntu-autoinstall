@@ -50,6 +50,24 @@ autoinstall:
     - git
     - python3
     - krdc
+    - openssh-server
+    - tftpd-hpa
+    - xinetd
+    - virtualenv
+    - bindfs
+    - sshpass
+    - isc-dhcp-server
+    - iperf3
+    - libudev-dev
+    - libudev1
+    - libusb-1.0-0
+    - libusb-1.0-0-dev
+    - libusb-dev
+    - libbluetooth-dev
+    - systemd-journal-remote
+    - software-properties-common
+    - apt-transport-https
+    - openjdk-11-jre
 
   package_update: true
   package_upgrade: true
@@ -60,23 +78,112 @@ autoinstall:
     - echo 'linux-generic-hwe-22.04' > /run/kernel-meta-package
     
   late-commands:
+
     # prerequisite to join AD
     - echo "session required pam_mkhomedir.so umask=0022 skel=/etc/skel" >> /target/etc/pam.d/common-session
 
-    # Changing from networkd to NetworkManager
     # move existing config out of the way
     - find /target/etc/netplan/ -name "*.yaml" -exec sh -c 'mv "$1" "$1-orig"' _ {} \;
-    # Create a new netplan and enable it
+
+    # set Networking configuration
     - |
       cat << EOF | sudo tee /target/etc/netplan/01-netcfg.yaml
       network:
         version: 2
-        renderer: NetworkManager
+        renderer: networkd
+        ethernets:
+          enp2s0:
+            dhcp4: true
+          enp3s0:
+            dhcp4: false
+            dhcp6: false
+            addresses:
+              - 192.168.3.10/24
+              - 192.168.4.10/24
       EOF
 
     - curtin in-target --target /target netplan generate
     - curtin in-target --target /target netplan apply
-    - curtin in-target --target /target systemctl enable NetworkManager.service
+
+    # set restriction in dhcp server
+    - |
+      cat << EOF | sudo tee /target/etc/default/isc-dhcp-server
+      INTERFACES="enp3s0"
+      EOF
+
+    # configure subnet for dhcp server
+    - |
+      cat << EOF | sudo tee /target/etc/dhcp/dhcpd.conf
+      subnet 192.168.3.0 netmask 255.255.255.0 {
+        range 192.168.3.101 192.168.3.199;
+      }
+      EOF
+
+    # systemd-journal-remote
+    - curtin in-target -- sed -e 's/listen-https/listen-http/' /lib/systemd/system/systemd-journal-remote.service | sudo tee /etc/systemd/system/systemd-journal-remote.service
+    - mkdir -p /target/var/log/journal/remote
+    - curtin in-target -- chown systemd-journal-remote /var/log/journal/remote
+    - curtin in-target -- systemctl enable systemd-journal-remote.socket
+
+    # fuse.conf
+    - echo "user_allow_other" > /etc/fuse.conf
+
+    # define mountpoints in /etc/fstab
+    - |
+      cat << EOF >> /target/etc/fstab
+      # Romulus
+      //Romulus/N-lw /home/automatix/mnt/N_lw cifs credentials=/home/automatix/.smb/.smbcredentials,file_mode=0600,dir_mode=0700,uid=automatix,nosuid,nodev,vers=2.1,nofail  0 0
+
+      # ls-softix
+      //ls-softix/data /home/automatix/mnt/sw_data cifs credentials=/home/automatix/.smb/.smbcredentials,file_mode=0600,dir_mode=0700,uid=automatix,nosuid,nodev,vers=2.1,domain=phytec.de,nofail  0 0
+      EOF
+
+
+    # udev rules
+    - |
+      cat << EOF | sudo tee /target/etc/udev/rules.d/11-ftdi.rules
+      # FT232AM/FT232BM/FT232R
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6001", GROUP="plugdev", MODE="0664"
+      # FT2232C/FT2232D/FT2232H
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6010", GROUP="plugdev", MODE="0664"
+      # FT4232/FT4232H
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6011", GROUP="plugdev", MODE="0664"
+      # FT232H
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6014", GROUP="plugdev", MODE="0664"
+      # FT230X/FT231X/FT234X
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6015", GROUP="plugdev", MODE="0664"
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/udev/rules.d/88-dfu.rules
+      # rules for bootloader in device firmware update DFU mode
+      SUBSYSTEMS=="usb", ATTRS{idVendor}=="1d50", GROUP="dialout", MODE="0660"
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/udev/rules.d/89-uuu.rules
+      SUBSYSTEMS=="usb", ATTRS{idVendor}=="15a2", GROUP="dialout", MODE="0660"
+      SUBSYSTEMS=="usb", ATTRS{idVendor}=="1fc9", GROUP="dialout", MODE="0660"
+      SUBSYSTEMS=="usb", ATTRS{idVendor}=="0525", GROUP="dialout", MODE="0660"
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/udev/rules.d/91-mcp2221.rules
+      # mcp2221 for DH-002 and DH-013
+      SUBSYSTEM=="usb", ATTRS{idVendor}=="04d8", ATTR{idProduct}=="00dd", MODE="0666"
+      EOF
+      
+    # setup TFTP
+    - mkdir -p /target/var/tftp/images
+    - chmod -R 777 /target/var/tftp
+    - chown -R nobody /target/var/tftp
+
+    - |
+      cat << EOF | sudo tee /target/etc/default/tftpd-hpa
+      TFTP_USERNAME="tftp"
+      TFTP_DIRECTORY="/var/tftp"
+      TFTP_ADDRESS="0.0.0.0:69"
+      TFTP_OPTIONS="--create --secure"
 
     # Enable automatic Upgrades
     - |
@@ -90,11 +197,10 @@ autoinstall:
       // Automatically upgrade packages from these (origin, archive) pairs
       Unattended-Upgrade::Allowed-Origins {
           // ${distro_id} and ${distro_codename} will be automatically expanded
-          "${distro_id} stable";
-          "${distro_id} ${distro_codename}-security";
-          "${distro_id} ${distro_codename}-updates";
-      //  "${distro_id} ${distro_codename}-proposed-updates";
-          "ubuntu icinga-${distro_codename} icinga-${distro_codename}";
+          "${distro_id}:stable";
+          "${distro_id}:${distro_codename}-security";
+          "${distro_id}:${distro_codename}-updates";
+      //  "${distro_id}:${distro_codename}-proposed-updates";
       };
 
       // List of packages to not update
@@ -110,6 +216,7 @@ autoinstall:
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
       EOF
       
+    # uninstall unneeded software
     - >-
       curtin in-target -- apt-get remove -y
       ubuntu-server ubuntu-server-minimal

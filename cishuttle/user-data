@@ -226,4 +226,4 @@ autoinstall:
     - curtin in-target -- systemctl disable systemd-networkd-wait-online.service
 
     # add new users to correct groups
-    - curtin in-target -- sed -i '/^#EXTRA_GROUPS/s/.*/EXTRA_GROUPS="plugdev dialout netdev"/' /etc/adduser.conf
+    - curtin in-target -- sed -i '/^#EXTRA_GROUPS/s/.*/EXTRA_GROUPS="plugdev dialout netdev systemd_journal_remote"/' /etc/adduser.conf

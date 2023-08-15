@@ -68,6 +68,11 @@ autoinstall:
     - software-properties-common
     - apt-transport-https
     - openjdk-11-jre
+    - uuu
+    - dfu-util
+    - can-utils
+    - tio
+    - ser2net
 
   package_update: true
   package_upgrade: true
@@ -217,6 +222,8 @@ autoinstall:
     - curtin in-target -- apt-get install -y cloud-init
     - curtin in-target -- apt-get autoremove -y
 
-   # disable wait for network timer
+    # disable wait for network timer
     - curtin in-target -- systemctl disable systemd-networkd-wait-online.service
 
+    # add new users to correct groups
+    - curtin in-target -- sed -i '/^#EXTRA_GROUPS/s/.*/EXTRA_GROUPS="plugdev dialout netdev"/' /etc/adduser.conf

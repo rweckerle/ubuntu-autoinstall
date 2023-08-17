@@ -100,6 +100,7 @@ autoinstall:
           enp2s0:
             dhcp4: true
           enp3s0:
+            optional: true
             dhcp4: false
             dhcp6: false
             addresses:
@@ -224,6 +225,3 @@ autoinstall:
 
     # disable wait for network timer
     - curtin in-target -- systemctl disable systemd-networkd-wait-online.service
-
-    # add new users to correct groups
-    - curtin in-target -- sed -i '/^#EXTRA_GROUPS/s/.*/EXTRA_GROUPS="plugdev dialout netdev systemd_journal_remote"/' /etc/adduser.conf

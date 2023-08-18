@@ -37,7 +37,6 @@ autoinstall:
     - wogerman
     - wswiss
     - language-pack-gnome-de
-    - build-essential
     - ubuntu-desktop-minimal
     - sssd
     - sssd-tools
@@ -133,7 +132,7 @@ autoinstall:
       sg3-utils thin-provisioning-tools tmux
       sosreport open-vm-tools motd-news-config lxd-agent-loader
       landscape-common
-    - curtin in-target -- apt-get install -y cloud-init
+    - curtin in-target -- apt-get install -y cloud-init build-essential
     - curtin in-target -- apt-get autoremove -y
 
    # disable wait for network timer

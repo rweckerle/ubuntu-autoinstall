@@ -221,6 +221,3 @@ autoinstall:
       landscape-common
     - curtin in-target -- apt-get install -y cloud-init build-essential
     - curtin in-target -- apt-get autoremove -y
-
-    # disable wait for network timer
-    - curtin in-target -- systemctl disable systemd-networkd-wait-online.service

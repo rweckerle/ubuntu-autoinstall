@@ -46,9 +46,9 @@ autoinstall:
         version: 2
         renderer: networkd
         ethernets:
-          enp2s0:
+          enp1s0:
             dhcp4: true
-          enp3s0:
+          enp2s0:
             optional: true
             dhcp4: false
             dhcp6: false
@@ -59,6 +59,7 @@ autoinstall:
 
     - curtin in-target --target /target netplan generate
     - curtin in-target --target /target netplan apply
+    - curtin in-target --target /target systemctl disable systemd.networkd.
 
     # uninstall unneeded software
     - >-

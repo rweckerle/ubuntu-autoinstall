@@ -55,6 +55,8 @@ autoinstall:
             addresses:
               - 192.168.3.10/24
               - 192.168.4.10/24
+          enp3s0:
+            dhcp4: true
       EOF
 
     - curtin in-target --target /target netplan generate

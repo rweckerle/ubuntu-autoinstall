@@ -1,0 +1,74 @@
+#cloud-config
+autoinstall:
+  version: 1
+  interactive-sections:
+    - identity
+    - network
+
+  refresh-installer:
+    update: yes
+
+  locale: de_DE.UTF-8
+  timezone: Europe/Berlin
+    
+  keyboard:
+    layout: de
+
+  storage:
+    layout:
+      name: direct
+
+  ssh:
+    allow-pw: true
+    install-server: true
+
+  apt:
+    primary:
+      - arches: [default]
+        uri: 'http://de.archive.ubuntu.com/ubuntu/'
+        search: 'http://de.archive.ubuntu.com/ubuntu/'
+
+  packages: 
+    - vim
+    - unattended-upgrades
+    - wget
+    - curl
+    - gnupg
+
+  package_update: true
+  package_upgrade: true
+
+  shutdown: poweroff
+  
+  late-commands:
+
+    # Enable automatic Upgrades
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/50unattended-upgrades
+      // Automatically upgrade packages from these (origin, archive) pairs
+      Unattended-Upgrade::Allowed-Origins {
+          // ${distro_id} and ${distro_codename} will be automatically expanded
+          "${distro_id}:stable";
+          "${distro_id}:${distro_codename}-security";
+          "${distro_id}:${distro_codename}-updates";
+      //  "${distro_id}:${distro_codename}-proposed-updates";
+      };
+
+      // List of packages to not update
+      Unattended-Upgrade::Package-Blacklist {
+      //  "vim";
+      //  "libc6";
+      //  "libc6-dev";
+      //  "libc6-i686";
+      };
+
+      // Do automatic removal of new unused dependencies after the upgrade
+      // (equivalent to apt-get autoremove)
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      EOF

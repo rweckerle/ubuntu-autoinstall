@@ -21,12 +21,14 @@ autoinstall:
   ssh:
     allow-pw: true
     install-server: true
+    authorized-keys: [ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC7E7TQPe5l7RQI3c55WpM8c+1Txlh33CwOzqh/oQFyQT6IakNPQi2dUyqKI4V3zqQCflM2JURzT9hVxhbymjlfM+QsCxAltav5YLUKWE10Vv5Ih4dbuabHHmUNLDP0Bgs5wbFbw8wcP7y3JC+cTaaAs43RJjexOcJ19jGQT+f1wTE2PFbdlK0IlsoJv6+BIbyTZrJuyVwNvFXFNJZe5sm+Nsq5gXHUYwjdIf7jVYYI/lEET71vBkLcRn5XLBiqQ586kGSqRfdmgCtOdx5iCObnzVPbDWc4HDOP2I/RzFJgSt0KucIgDkHYFB5GCKmjRTiPRmtcIUG+jK58fSMZRfQFEMm5OnqMpFpaYXT4cX7IS2ydP2qPdt4ENIrI+CPaOZhBXCAZM+YGCJZFqXY5AehCQ8BVIep5MJY2XCgYN2IavlZK7DStJFzCCDaHnzaRh7+KYVKfKW0eeQaJxKy4Id/7tJU2BEqGOsoUtJng/ds0ykdGLXoMR7Cv4idUu6bfwPww2CsdTWk0z9+aDRktmgAjGSHBWDx0m+QchNCgAVTJQP0vtHcdRc6zgHK8GRzlM3Ql4IbpnDNgUbMMQho1Z7EREYzb4YJkfp/M/n3zDQbse9KIJujnx0NWDv+vep0SMiDtisG/VG+ZzbqlZvkmGwXybajlOZoI5Q7UnKRqgwAtHQ== r.weckerle@phytec.de]
 
   apt:
+    preserve_sources_list: false
     primary:
       - arches: [default]
-        uri: 'http://de.archive.ubuntu.com/ubuntu/'
-        search: 'http://de.archive.ubuntu.com/ubuntu/'
+        uri: 'http://ls-aptcache.phytec.de:3142/ubuntu/'
+        search: 'http://ls-aptcache.phytec.de:3142/ubuntu/'
 
   packages: 
     - vim
@@ -42,6 +44,8 @@ autoinstall:
   
   late-commands:
 
+    - curtin in-target -- apt update && apt dist-upgrade -y
+    
     # Enable automatic Upgrades
     - |
       cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
@@ -72,3 +76,19 @@ autoinstall:
       // (equivalent to apt-get autoremove)
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
       EOF
+
+    - |
+      cat << EOF | tee /target/etc/apt/sources.list.d/ubuntu.sources
+      Types: deb
+      URIs: http://de.archive.ubuntu.com/ubuntu
+      Suites: noble noble-updates noble-backports
+      Components: main restricted universe multiverse
+      Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+      Types: deb
+      URIs: http://security.ubuntu.com/ubuntu/
+      Suites: noble-security
+      Components: main restricted universe multiverse
+      Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+      EOF
+

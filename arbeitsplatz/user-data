@@ -28,8 +28,8 @@ autoinstall:
     preserve_sources_list: false
     primary:
       - arches: [amd64, i386]
-        uri: 'http://de.archive.ubuntu.com/ubuntu/'
-        search: 'http://de.archive.ubuntu.com/ubuntu/'
+        uri: 'http://ls-aptcache.phytec.de:3142/ubuntu/'
+        search: 'http://ls-aptcache.phytec.de:3142/ubuntu/'
 
   packages: 
     - language-pack-de-base
@@ -99,3 +99,51 @@ autoinstall:
 
     # disable wait for network timer
     - curtin in-target -- systemctl disable systemd-networkd-wait-online.service
+    - curtin in-target -- apt update && apt dist-upgrade -y
+    
+    # Enable automatic Upgrades
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/20auto-upgrades
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      EOF
+
+    - |
+      cat << EOF | sudo tee /target/etc/apt/apt.conf.d/50unattended-upgrades
+      // Automatically upgrade packages from these (origin, archive) pairs
+      Unattended-Upgrade::Allowed-Origins {
+          // ${distro_id} and ${distro_codename} will be automatically expanded
+          "${distro_id}:stable";
+          "${distro_id}:${distro_codename}-security";
+          "${distro_id}:${distro_codename}-updates";
+      //  "${distro_id}:${distro_codename}-proposed-updates";
+      };
+
+      // List of packages to not update
+      Unattended-Upgrade::Package-Blacklist {
+      //  "vim";
+      //  "libc6";
+      //  "libc6-dev";
+      //  "libc6-i686";
+      };
+
+      // Do automatic removal of new unused dependencies after the upgrade
+      // (equivalent to apt-get autoremove)
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      EOF
+
+    - |
+      cat << EOF | tee /target/etc/apt/sources.list.d/ubuntu.sources
+      Types: deb
+      URIs: http://de.archive.ubuntu.com/ubuntu
+      Suites: noble noble-updates noble-backports
+      Components: main restricted universe multiverse
+      Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+      Types: deb
+      URIs: http://security.ubuntu.com/ubuntu/
+      Suites: noble-security
+      Components: main restricted universe multiverse
+      Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+      EOF
+

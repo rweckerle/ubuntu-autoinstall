@@ -2,7 +2,7 @@
 
 echo "Extracting Source Files"
 mkdir source-files
-7z -y x *ubuntu*.iso -osource-files
+7z -y x $1 -osource-files
 mv source-files/\[BOOT\] BOOT
 
 echo "Populating grub.cfg"
@@ -10,13 +10,13 @@ echo -e "menuentry "Autoinstall Ubuntu Server" {\n    set gfxpayload=keep\n    l
 
 echo "Copying autoinstall user-data"
 mkdir source-files/nocloud
-cp -r $1/. source-files/nocloud
+cp -r $2/. source-files/nocloud
 
 echo "making ISO file"
 cd source-files
 xorriso -as mkisofs -r \
   -V 'Ubuntu 24.04.1 LTS AUTO' \
-  -o ../$1.iso \
+  -o ../$(basename $1 .iso)-autoinstall.iso \
   --grub2-mbr ../BOOT/1-Boot-NoEmul.img \
   -partition_offset 16 \
   --mbr-force-bootable \

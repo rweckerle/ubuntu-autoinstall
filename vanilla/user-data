@@ -12,7 +12,7 @@ autoinstall:
 
   identity:
     hostname: newmachine
-    password: $6$mdEyp4TqtLB5xite$tzOQdd8KH8nyCJF7B6VcfBXtVO.waHAgE6cIQGopwrddojgBncpz6aWxmUB845V1uqp7rqezN0IOa70q0AZMJ/
+    password: $6$Z4bjK4krkkyqwzVs$V8NkWHcSzfyVJ79jfFNJ2b7KLaU.5fg0g7HZFED6dhpIfCBpY4PUlUjF18icbtow1OjdmvLu7lPJ1ULG0lLo11
     username: phytec
 
   storage:

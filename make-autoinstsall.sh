@@ -15,7 +15,7 @@ cp -r $2/. source-files/nocloud
 echo "making ISO file"
 cd source-files
 xorriso -as mkisofs -r \
-  -V 'Ubuntu 24.04.1 LTS AUTO' \
+  -V 'Ubuntu 24.04 LTS AUTO' \
   -o ../$(basename $1 .iso)$2-autoinstall.iso \
   --grub2-mbr ../BOOT/1-Boot-NoEmul.img \
   -partition_offset 16 \
